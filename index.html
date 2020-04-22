@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/p5.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/addons/p5.dom.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/addons/p5.sound.min.js"></script>
+		<style>
+			html,
+			body {
+				margin: 0;
+				padding: 0;
+			}
+		</style>
+	</head>
+	<body>
+		<script>
+			// prettier-ignore
+			const drawOrder = [
+			             [0, 0],
+			             [1, 0], [0, 1],
+			             [2, 0], [1, 1], [0, 2],
+			             [3, 0], [2, 1], [1, 2], [0, 3],
+			             [4, 0], [3, 1], [2, 2], [1, 3], [0, 4],
+			             [5, 0], [4, 1], [3, 2], [2, 3], [1, 4], [0, 5],
+			             [6, 0], [5, 1], [4, 2], [3, 3], [2, 4], [1, 5], [0, 6],
+			             [7, 0], [6, 1], [5, 2], [4, 3], [3, 4], [2, 5], [1, 6], [0, 7],
+			             [8, 0], [7, 1], [6, 2], [5, 3], [4, 4], [3, 5], [2, 6], [1, 7], [0, 8],
+			             [9, 0], [8, 1], [7, 2], [6, 3], [5, 4], [4, 5], [3, 6], [2, 7], [1, 8], [0, 9],
+			             [9, 1], [8, 2], [7, 3], [6, 4], [5, 5], [4, 6], [3, 7], [2, 8], [1, 9],
+			             [9, 2], [8, 3], [7, 4], [6, 5], [5, 6], [4, 7], [3, 8], [2, 9],
+			             [9, 3], [8, 4], [7, 5], [6, 6], [5, 7], [4, 8], [3, 9],
+			             [9, 4], [8, 5], [7, 6], [6, 7], [5, 8], [4, 9],
+			             [9, 5], [8, 6], [7, 7], [6, 8], [5, 9],
+			             [9, 6], [8, 7], [7, 8], [6, 9],
+			             [9, 7], [8, 8], [7, 9],
+			             [9, 8], [8, 9],
+			             [9, 9]
+			];
+
+			let img;
+			let UI;
+			let tiles;
+			let lavaTiles;
+			let row;
+			let col;
+			let lava = [];
+			let board = [];
+			let playerAnim = [];
+			let computerAnim = [];
+			let font;
+			let fontsize = 16;
+			let computerLoc = [7, 2];
+			let playerLoc = [2, 7];
+			let scoreMax = 413;
+			let score = 206;
+			let direction = "r";
+			let pMoveSet = [];
+			let cMoveSet = [];
+			let whosTurn = "p";
+
+			function preload() {
+				UI = loadImage("img/isoJumpy.png");
+				tiles = loadImage("img/isoTileSetSM.png");
+				lavaTiles = loadImage("img/lava.png");
+				clickRow = loadImage("img/row.png");
+				clickCol = loadImage("img/col.png");
+				font = loadFont("img/Phrasme_.ttf");
+			}
+
+			function setup() {
+				createCanvas(800, 600);
+				frameRate(60);
+				setPieces();
+				textFont(font);
+				textSize(fontsize);
+				textAlign(CENTER, CENTER);
+				getMoves(playerLoc, 2);
+			}
+
+			function mouseClicked() {
+				if (whosTurn == "p") {
+					// check piece click
+					let c = clickCol.get(mouseX, mouseY);
+					let r = clickRow.get(mouseX, mouseY);
+					// prettier-ignore
+					if ( c[0] / 11 < 10 && r[1] / 11 < 10 && !board[playerLoc[0]][playerLoc[1]][0] == 0 ) {
+                        // move player
+                        board[playerLoc[0]][playerLoc[1]] = [0, 0];
+                        // delete block
+                        playerLoc = [r[1] / 11, c[0] / 11];
+                        // change Score
+                        score += board[playerLoc[0]][playerLoc[1]][1];
+                        pMoveSet = [];
+                        if (direction == "r") {
+                            direction = "c";
+                        } else {
+                            direction = "r";
+                        }
+                        getMoves(playerLoc, 2);
+                    }
+				}
+			}
+
+			function getMoves(spot, count) {
+				if (direction == "r") {
+					console.log("r");
+					let currCount = 0;
+					for (let a = spot[0] - 1; a >= 0; a--) {
+						if (!board[a][spot[1]] == 0 && currCount < count) {
+							pMoveSet.push([a, spot[1]]);
+							currCount++;
+						}
+					}
+					currCount = 0;
+					for (let a = spot[0] + 1; a < 10; a++) {
+						if (!board[a][spot[1]] == 0 && currCount < count) {
+							pMoveSet.push([a, spot[1]]);
+							currCount++;
+						}
+					}
+				} else {
+					let currCount = 0;
+					for (let a = spot[1] - 1; a >= 0; a--) {
+						if (!board[spot[1]][a] == 0 && currCount < count) {
+							pMoveSet.push([spot[1], a]);
+							currCount++;
+						}
+					}
+					currCount = 0;
+					for (let a = spot[1] + 1; a < 10; a++) {
+						if (!board[spot[1]][a] == 0 && currCount < count) {
+							pMoveSet.push([spot[1], a]);
+							currCount++;
+						}
+					}
+				}
+			}
+
+			function setPieces() {
+				board = [];
+				for (let y = 0; y < 10; y++) {
+					let row = [];
+					for (let x = 0; x < 10; x++) {
+						let whichPiece = Math.round(Math.random() * 10);
+						if (whichPiece > 2) {
+							row.push([1, Math.round(Math.random() * 10)]);
+						} else {
+							row.push([2, 0 - Math.round(Math.random() * 10)]);
+						}
+					}
+					board.push(row);
+				}
+				board[7][2] = [3, 0];
+				board[2][7] = [3, 0];
+
+				console.log(board);
+			}
+
+			function draw() {
+				// background(220);
+				// draw lava
+
+				let newX;
+				for (let y = 100; y < 450; y += Math.random() * 15 + 15) {
+					for (let x = 125; x < 675; x += Math.random() * 50 + 50) {
+						let whichLava = Math.round(Math.random() * 4);
+
+						if ((y / 32) % 2 == 1) {
+							newX = x + 57;
+						} else {
+							newX = x;
+						}
+						// tint(255, 200);
+
+						// prettier-ignore
+						image(lavaTiles, newX, y, 111, 65, whichLava * 111, 0, 111, 65 );
+					}
+				}
+				tint(255, 255);
+
+				image(UI, 0, 0, 800, 308, 0, 0, 800, 308);
+				//draw pieces
+				for (a = 0; a < drawOrder.length; a++) {
+					switch (board[drawOrder[a][0]][drawOrder[a][1]][0]) {
+						case 1:
+							// prettier-ignore
+							image( tiles, (9 - drawOrder[a][0] + drawOrder[a][1]) * 33.22 + 66, (drawOrder[a][0] + drawOrder[a][1]) * 19.35 + 98, 66, 78, 198, 0, 66, 78 );
+							fill(255);
+							// prettier-ignore
+							text( board[drawOrder[a][0]][drawOrder[a][1]][1], (9 - drawOrder[a][0] + drawOrder[a][1]) * 33.22 + 100, (drawOrder[a][0] + drawOrder[a][1]) * 19.35 + 116 );
+							break;
+						case 2:
+							// prettier-ignore
+							image( tiles, (9 - drawOrder[a][0] + drawOrder[a][1]) * 33.2 + 66, (drawOrder[a][0] + drawOrder[a][1]) * 19.35 + 98, 66, 78, 133, 0, 66, 78 );
+							fill(255);
+							// prettier-ignore
+							text( board[drawOrder[a][0]][drawOrder[a][1]][1], (9 - drawOrder[a][0] + drawOrder[a][1]) * 33.22 + 100, (drawOrder[a][0] + drawOrder[a][1]) * 19.35 + 116 );
+							break;
+						case 3:
+							// prettier-ignore
+							image( tiles, (9 - drawOrder[a][0] + drawOrder[a][1]) * 33.2 + 66, (drawOrder[a][0] + drawOrder[a][1]) * 19.25 + 92, 66, 78, 0, 76, 66, 78 );
+							break;
+					}
+				}
+				///// draw player Moves
+				for (a = 0; a < pMoveSet.length; a++) {
+					// prettier-ignore
+					image( tiles, (9 - pMoveSet[a][0] + pMoveSet[a][1]) * 33.2 + 60, (pMoveSet[a][0] + pMoveSet[a][1]) * 19.25 + 95, 73, 45, 22, 155, 73, 45);
+				}
+				image(UI, 0, 289, 800, 619, 0, 308, 800, 600);
+				///// draw player
+				// prettier-ignore
+				image( tiles, (9 - playerLoc[0] + playerLoc[1]) * 33.2 + 66, (playerLoc[0] + playerLoc[1]) * 19.25 + 45, 66, 78, 200, 76, 66, 78 );
+				///// draw computer
+				// prettier-ignore
+				image( tiles, (9 - computerLoc[0] + computerLoc[1]) * 33.2 + 66, (computerLoc[0] + computerLoc[1]) * 19.25 + 45, 66, 78, 133, 76, 66, 78 );
+				///// draw logo
+				image(UI, 0, 0, 280, 240, 0, 960, 280, 240);
+				///// draw meter
+				image(UI, 0, 280, 800, 320, 0, 640, 800, 320);
+				///// draw score bar
+				// prettier-ignore
+				image( UI, 185 + (scoreMax - score), 518, score, 38, 380 + (scoreMax - score), 973, score, 38 );
+			}
+
+			// Top-left corner of destination rectangle is at (50, 0)
+			// Destination rectangle width and height are 40 x 20
+			// The next parameters are relative to the source image:
+			// - Starting at position (50, 50) on the source image, capture a 50 x 50
+			// subsection
+			// - Draw this subsection to fill the dimensions of the destination rectangle
+			// image(img, 50, 0, 40, 20, 50, 50, 50, 50);
+		</script>
+	</body>
+</html>
